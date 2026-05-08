@@ -1,3 +1,0 @@
-anthropic
-duckduckgo-search
-python-dotenv

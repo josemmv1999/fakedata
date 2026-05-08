@@ -1,0 +1,17 @@
+[project]
+name = "verificador-backend"
+version = "0.1.0"
+description = "Pipeline de verificación de hechos + API FastAPI con SSE"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+    "ddgs>=6.0.0",
+    "trafilatura>=1.12.0",
+    "python-dotenv>=1.0.0",
+]
+
+[tool.uv]
+package = false
