@@ -7,8 +7,8 @@ import {
   withState,
 } from '@ngrx/signals';
 
-import { environment } from '../../../environments/environment';
 import type {
+  CachedPayload,
   Claim,
   LanguageAnalysis,
   Locale,
@@ -16,6 +16,7 @@ import type {
   StepId,
   Verdict,
 } from '../../models/verification.types';
+import { ApiModeService } from '../api/api-mode.service';
 import { SseService } from '../services/sse.service';
 
 const STEP_ORDER: readonly StepId[] = [
@@ -39,6 +40,7 @@ interface VerificationState {
   evidenceByClaim: Record<string, Source[]>;
   language: LanguageAnalysis | null;
   verdict: Verdict | null;
+  cached: CachedPayload | null;
   error: { step: StepId | null; message: string } | null;
 }
 
@@ -58,6 +60,7 @@ const INITIAL: VerificationState = {
   evidenceByClaim: {},
   language: null,
   verdict: null,
+  cached: null,
   error: null,
 };
 
@@ -79,6 +82,7 @@ export const VerificationStore = signalStore(
   })),
   withMethods((store) => {
     const sse = inject(SseService);
+    const apiMode = inject(ApiModeService);
 
     function transitionTo(step: StepId, message: string) {
       const next: Record<StepId, StepState> = { ...store.stepStates() };
@@ -122,13 +126,17 @@ export const VerificationStore = signalStore(
       async start(input: string, locale: Locale = 'en') {
         patchState(store, { ...INITIAL, status: 'streaming' });
         try {
-          for await (const ev of sse.stream(`${environment.apiUrl}/verify`, {
+          for await (const ev of sse.stream(`${apiMode.apiUrl()}/verify`, {
             input,
             locale,
           })) {
             switch (ev.event) {
               case 'status':
                 transitionTo(ev.data.step, ev.data.message);
+                break;
+              case 'cached':
+                patchState(store, { cached: ev.data });
+                markAllDone();
                 break;
               case 'extracted':
                 patchState(store, { extracted: ev.data });

@@ -2,10 +2,10 @@ import json
 import logging
 
 from agent import (
+    FAST_MODEL,
     LANGUAGE_ANALYSIS_MAX_CHARS,
     LANGUAGE_ANALYSIS_TOKENS,
     LOCALE_NAMES,
-    MODEL,
     client,
     parse_json_response,
 )
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def analizar_lenguaje(texto: str, locale: Locale = "en") -> LanguageAnalysis:
     locale_name = LOCALE_NAMES.get(locale, "English")
     resp = await client.messages.create(
-        model=MODEL,
+        model=FAST_MODEL,
         max_tokens=LANGUAGE_ANALYSIS_TOKENS,
         system=(
             "You analyze journalistic language to detect manipulation. Respond ONLY "

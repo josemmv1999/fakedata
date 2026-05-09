@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = os.getenv("MODEL", "claude-sonnet-4-6")
+FAST_MODEL = os.getenv("FAST_MODEL", "claude-haiku-4-5-20251001")
 MAX_CLAIMS = int(os.getenv("MAX_CLAIMS", "3"))
 
 CONTENT_MAX_CHARS = 4000
@@ -106,6 +107,7 @@ __all__ = [
     "run",
     "client",
     "MODEL",
+    "FAST_MODEL",
     "MAX_CLAIMS",
     "LOCALE_NAMES",
     "STATUS_MESSAGES",

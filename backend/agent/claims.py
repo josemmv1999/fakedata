@@ -3,9 +3,9 @@ import logging
 
 from agent import (
     CLAIM_EXTRACTION_TOKENS,
+    FAST_MODEL,
     LOCALE_NAMES,
     MAX_CLAIMS,
-    MODEL,
     client,
     parse_json_response,
 )
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def extraer_claims(texto: str, locale: Locale = "en") -> list[Claim]:
     locale_name = LOCALE_NAMES.get(locale, "English")
     resp = await client.messages.create(
-        model=MODEL,
+        model=FAST_MODEL,
         max_tokens=CLAIM_EXTRACTION_TOKENS,
         system=(
             "You extract verifiable claims from a text. Respond ONLY with valid JSON, "

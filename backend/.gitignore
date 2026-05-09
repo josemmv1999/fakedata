@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local verification cache (sqlite)
+cache.db
+cache.db-journal
+cache.db-shm
+cache.db-wal

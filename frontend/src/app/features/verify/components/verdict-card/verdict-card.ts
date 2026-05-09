@@ -7,10 +7,16 @@ import {
 } from '@angular/core';
 
 import { I18nService } from '../../../../core/i18n/i18n.service';
-import type { Verdict } from '../../../../models/verification.types';
+import type {
+  CachedPayload,
+  Verdict,
+} from '../../../../models/verification.types';
 
 const RADIUS = 36;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+const MIN = 60;
+const HOUR = 3600;
+const DAY = 86400;
 
 @Component({
   selector: 'app-verdict-card',
@@ -18,35 +24,39 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
   template: `
     <article
       [class]="cardClass()"
-      class="relative overflow-hidden rounded-3xl border-2 p-5 shadow-xl shadow-black/[0.04] backdrop-blur-sm transition-colors sm:p-7 lg:p-8 dark:shadow-black/40"
+      class="relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm shadow-black/[0.03] transition-colors sm:p-7 lg:p-8 dark:bg-zinc-950 dark:shadow-black/30"
     >
-      <!-- Decorative glow -->
+      <!-- Top accent rule (only color statement) -->
       <div
         aria-hidden="true"
-        [class]="glowClass()"
-        class="pointer-events-none absolute -top-24 right-0 h-64 w-64 rounded-full opacity-50 blur-3xl"
+        [class]="accentClass()"
+        class="absolute inset-x-0 top-0 h-1"
       ></div>
 
-      <header class="relative flex items-start justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <span
-            [class]="badgeClass()"
-            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl font-bold ring-4 ring-white/40 dark:ring-black/30"
-          >
-            {{ icon() }}
-          </span>
-          <div class="min-w-0">
-            <p
-              class="text-[0.65rem] font-medium uppercase tracking-[0.16em] opacity-70"
+      <header class="flex items-start justify-between gap-4">
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <span
+              [class]="kickerClass()"
+              class="text-[0.7rem] font-semibold uppercase tracking-[0.18em]"
             >
               {{ i18n.t('verdict.label.' + verdict().verdict) }}
-            </p>
-            <h2
-              class="font-display text-2xl font-semibold leading-tight tracking-tight sm:text-3xl"
-            >
-              {{ verdictLabel() }}
-            </h2>
+            </span>
+            @if (cached(); as c) {
+              <span
+                [attr.title]="i18n.t('cache.tooltip')"
+                class="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.14em] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400"
+              >
+                <span aria-hidden="true">⚡</span>
+                {{ cachedLabel() }}
+              </span>
+            }
           </div>
+          <h2
+            class="mt-3 font-display text-3xl font-medium leading-[1.1] tracking-tight text-zinc-900 sm:text-4xl dark:text-zinc-50"
+          >
+            {{ verdictLabel() }}
+          </h2>
         </div>
 
         <!-- Confidence ring -->
@@ -62,15 +72,15 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
               cx="44"
               cy="44"
               [attr.r]="radius"
-              stroke-width="8"
+              stroke-width="6"
               fill="none"
-              class="stroke-current opacity-15"
+              class="stroke-zinc-200 dark:stroke-zinc-800"
             />
             <circle
               cx="44"
               cy="44"
               [attr.r]="radius"
-              stroke-width="8"
+              stroke-width="6"
               fill="none"
               [attr.stroke-dasharray]="circumference"
               [attr.stroke-dashoffset]="dashoffset()"
@@ -83,11 +93,11 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
             class="absolute inset-0 flex flex-col items-center justify-center"
           >
             <span
-              class="font-display text-2xl font-semibold tabular-nums leading-none sm:text-3xl"
+              class="font-display text-2xl font-medium tabular-nums leading-none text-zinc-900 sm:text-3xl dark:text-zinc-50"
               >{{ verdict().confidence }}</span
             >
             <span
-              class="mt-0.5 text-[0.55rem] font-medium uppercase tracking-[0.16em] opacity-60"
+              class="mt-0.5 text-[0.55rem] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500"
               >{{ i18n.t('verdict.confidence') }}</span
             >
           </div>
@@ -95,40 +105,46 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
       </header>
 
       <p
-        class="relative mt-6 text-base leading-relaxed sm:text-[1.0625rem]"
+        class="mt-7 break-words font-display text-[1.125rem] leading-[1.6] text-zinc-800 first-letter:float-left first-letter:mr-2 first-letter:font-display first-letter:text-[3.5rem] first-letter:font-medium first-letter:leading-[0.95] first-letter:text-zinc-900 sm:text-[1.1875rem] dark:text-zinc-200 dark:first-letter:text-zinc-50"
       >
         {{ verdict().summary }}
       </p>
 
       @if (verdict().red_flags.length > 0) {
-        <section class="relative mt-6">
+        <section
+          class="mt-7 border-t border-zinc-200 pt-5 dark:border-zinc-800"
+        >
           <h3
-            class="text-[0.7rem] font-semibold uppercase tracking-[0.16em] opacity-75"
+            class="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400"
           >
             {{ i18n.t('verdict.redFlags') }}
           </h3>
-          <ul class="mt-2 space-y-1.5 text-sm leading-relaxed">
+          <ul class="mt-3 space-y-2 text-[0.9375rem] leading-relaxed">
             @for (b of verdict().red_flags; track b) {
-              <li class="flex items-start gap-2">
+              <li class="flex items-start gap-3">
                 <span
-                  class="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-current opacity-70"
+                  [class]="accentClass()"
+                  class="mt-2 h-1 w-2 shrink-0"
                 ></span>
-                <span>{{ b }}</span>
+                <span
+                  class="min-w-0 flex-1 break-words text-zinc-700 dark:text-zinc-300"
+                  >{{ b }}</span
+                >
               </li>
             }
           </ul>
         </section>
       }
 
-      <section
-        class="relative mt-6 rounded-2xl bg-white/50 p-4 backdrop-blur dark:bg-black/20"
-      >
+      <section class="mt-7 border-t border-zinc-200 pt-5 dark:border-zinc-800">
         <h3
-          class="text-[0.7rem] font-semibold uppercase tracking-[0.16em] opacity-75"
+          class="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400"
         >
           {{ i18n.t('verdict.recommendation') }}
         </h3>
-        <p class="mt-1.5 text-sm leading-relaxed sm:text-[0.9375rem]">
+        <p
+          class="mt-2 break-words font-display text-[0.9375rem] italic leading-relaxed text-zinc-700 sm:text-base dark:text-zinc-300"
+        >
           {{ verdict().recommendation }}
         </p>
       </section>
@@ -139,6 +155,7 @@ export class VerdictCard {
   protected readonly i18n = inject(I18nService);
 
   readonly verdict = input.required<Verdict>();
+  readonly cached = input<CachedPayload | null>(null);
 
   protected readonly radius = RADIUS;
   protected readonly circumference = CIRCUMFERENCE;
@@ -146,6 +163,16 @@ export class VerdictCard {
   protected readonly verdictLabel = computed(() =>
     this.i18n.t(`verdict.label.${this.verdict().verdict}`),
   );
+
+  protected readonly cachedLabel = computed(() => {
+    const c = this.cached();
+    if (!c) return '';
+    const a = Math.max(0, c.age_seconds);
+    if (a < MIN) return this.i18n.t('cache.justNow');
+    if (a < HOUR) return this.i18n.t('cache.minutesAgo').replace('{n}', String(Math.floor(a / MIN)));
+    if (a < DAY) return this.i18n.t('cache.hoursAgo').replace('{n}', String(Math.floor(a / HOUR)));
+    return this.i18n.t('cache.daysAgo').replace('{n}', String(Math.floor(a / DAY)));
+  });
 
   protected readonly dashoffset = computed(() => {
     const pct = Math.max(0, Math.min(100, this.verdict().confidence));
@@ -155,54 +182,40 @@ export class VerdictCard {
   protected readonly cardClass = computed(
     () =>
       ({
-        true: 'border-emerald-300/70 bg-gradient-to-br from-emerald-50 to-white text-emerald-950 dark:border-emerald-700/60 dark:from-emerald-950/60 dark:to-zinc-950 dark:text-emerald-50',
-        false:
-          'border-rose-300/70 bg-gradient-to-br from-rose-50 to-white text-rose-950 dark:border-rose-700/60 dark:from-rose-950/60 dark:to-zinc-950 dark:text-rose-50',
-        partially_true:
-          'border-amber-300/70 bg-gradient-to-br from-amber-50 to-white text-amber-950 dark:border-amber-700/60 dark:from-amber-950/60 dark:to-zinc-950 dark:text-amber-50',
-        unverified:
-          'border-zinc-300/80 bg-gradient-to-br from-zinc-50 to-white text-zinc-900 dark:border-zinc-700/70 dark:from-zinc-900 dark:to-zinc-950 dark:text-zinc-100',
+        true: 'border-zinc-200 dark:border-zinc-800',
+        false: 'border-zinc-200 dark:border-zinc-800',
+        partially_true: 'border-zinc-200 dark:border-zinc-800',
+        unverified: 'border-zinc-200 dark:border-zinc-800',
       })[this.verdict().verdict],
   );
 
-  protected readonly badgeClass = computed(
+  protected readonly accentClass = computed(
     () =>
       ({
-        true: 'bg-emerald-500 text-white',
-        false: 'bg-rose-500 text-white',
-        partially_true: 'bg-amber-500 text-white',
-        unverified: 'bg-zinc-500 text-white',
+        true: 'bg-emerald-600 dark:bg-emerald-500',
+        false: 'bg-rose-600 dark:bg-rose-500',
+        partially_true: 'bg-amber-600 dark:bg-amber-500',
+        unverified: 'bg-zinc-500 dark:bg-zinc-600',
       })[this.verdict().verdict],
   );
 
-  protected readonly glowClass = computed(
+  protected readonly kickerClass = computed(
     () =>
       ({
-        true: 'bg-emerald-400/40 dark:bg-emerald-500/30',
-        false: 'bg-rose-400/40 dark:bg-rose-500/30',
-        partially_true: 'bg-amber-400/40 dark:bg-amber-500/30',
-        unverified: 'bg-zinc-400/30 dark:bg-zinc-500/20',
+        true: 'text-emerald-700 dark:text-emerald-400',
+        false: 'text-rose-700 dark:text-rose-400',
+        partially_true: 'text-amber-700 dark:text-amber-400',
+        unverified: 'text-zinc-600 dark:text-zinc-400',
       })[this.verdict().verdict],
   );
 
   protected readonly ringStroke = computed(
     () =>
       ({
-        true: 'text-emerald-500 drop-shadow-[0_0_6px_rgba(16,185,129,0.5)]',
-        false: 'text-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.5)]',
-        partially_true:
-          'text-amber-500 drop-shadow-[0_0_6px_rgba(245,158,11,0.5)]',
-        unverified: 'text-zinc-500',
-      })[this.verdict().verdict],
-  );
-
-  protected readonly icon = computed(
-    () =>
-      ({
-        true: '✓',
-        false: '✕',
-        partially_true: '≈',
-        unverified: '?',
+        true: 'stroke-emerald-600 dark:stroke-emerald-500',
+        false: 'stroke-rose-600 dark:stroke-rose-500',
+        partially_true: 'stroke-amber-600 dark:stroke-amber-500',
+        unverified: 'stroke-zinc-500 dark:stroke-zinc-600',
       })[this.verdict().verdict],
   );
 }

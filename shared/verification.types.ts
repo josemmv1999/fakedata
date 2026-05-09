@@ -81,9 +81,18 @@ export interface ErrorPayload {
   step: StepId | null;
   message: string;
 }
+export interface CachedPayload {
+  /** Unix epoch seconds when the cached result was first computed. */
+  created_at: number;
+  /** Seconds elapsed between `created_at` and the current request. */
+  age_seconds: number;
+  /** Model that produced the cached verdict (informational). */
+  model: string;
+}
 
 export type VerificationEvent =
   | { event: 'status'; data: StatusPayload }
+  | { event: 'cached'; data: CachedPayload }
   | { event: 'extracted'; data: ExtractedPayload }
   | { event: 'claims'; data: ClaimsPayload }
   | { event: 'evidence'; data: EvidencePayload }

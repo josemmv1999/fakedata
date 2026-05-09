@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>News fact-checker</title>
+    <title>Veritas — News fact-checker</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
@@ -10,6 +10,25 @@
       content="Paste a URL or headline and verify claims against real sources."
     />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script>
+      // Sync theme application before paint to avoid a flash of the wrong theme.
+      // Mirrors ThemeService.STORAGE_KEY and the same resolution rules.
+      (function () {
+        try {
+          var stored = localStorage.getItem('verifier.theme');
+          var mode = stored === 'light' || stored === 'dark' ? stored : 'system';
+          var effective =
+            mode === 'system'
+              ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                ? 'dark'
+                : 'light'
+              : mode;
+          if (effective === 'dark') document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* no-op: localStorage may be blocked */
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

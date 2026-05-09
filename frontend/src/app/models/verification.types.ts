@@ -77,9 +77,15 @@ export interface ErrorPayload {
   step: StepId | null;
   message: string;
 }
+export interface CachedPayload {
+  created_at: number;
+  age_seconds: number;
+  model: string;
+}
 
 export type VerificationEvent =
   | { event: 'status'; data: StatusPayload }
+  | { event: 'cached'; data: CachedPayload }
   | { event: 'extracted'; data: ExtractedPayload }
   | { event: 'claims'; data: ClaimsPayload }
   | { event: 'evidence'; data: EvidencePayload }
