@@ -1,16 +1,17 @@
-# Mantener sincronizado con shared/verification.types.ts (copia espejo manual).
+# Keep in sync with shared/verification.types.ts (manual mirror).
 
 from typing import Literal
 
 from pydantic import BaseModel, Field
 
+Locale = Literal["en", "es", "pt", "fr"]
+SUPPORTED_LOCALES: tuple[Locale, ...] = ("en", "es", "pt", "fr")
+
 StepId = Literal["extract", "claims", "search", "language", "verdict"]
-Severity = Literal["baja", "media", "alta"]
-Tone = Literal["neutral", "sensacionalista", "propagandistico", "opinativo"]
-VerdictType = Literal[
-    "verdadera", "falsa", "parcialmente_verdadera", "sin_evidencia_suficiente"
-]
-ClaimStatus = Literal["confirmada", "refutada", "sin_evidencia"]
+Severity = Literal["low", "medium", "high"]
+Tone = Literal["neutral", "sensational", "propagandistic", "opinionated"]
+VerdictType = Literal["true", "false", "partially_true", "unverified"]
+ClaimStatus = Literal["confirmed", "refuted", "unverified"]
 
 
 class Source(BaseModel):
@@ -27,27 +28,27 @@ class Claim(BaseModel):
 
 
 class ManipulationSignal(BaseModel):
-    tipo: str
-    ejemplo: str
-    severidad: Severity
+    type: str
+    example: str
+    severity: Severity
 
 
 class LanguageAnalysis(BaseModel):
-    puntuacion_manipulacion: float = Field(ge=0, le=10)
-    señales: list[ManipulationSignal]
-    tono: Tone
+    manipulation_score: float = Field(ge=0, le=10)
+    signals: list[ManipulationSignal]
+    tone: Tone
 
 
 class ClaimEvaluation(BaseModel):
     claim: str
-    estado: ClaimStatus
-    razon: str
+    status: ClaimStatus
+    reason: str
 
 
 class Verdict(BaseModel):
-    veredicto: VerdictType
-    confianza: int = Field(ge=0, le=100)
-    resumen: str
-    claims_evaluados: list[ClaimEvaluation]
-    banderas_rojas: list[str]
-    recomendacion: str
+    verdict: VerdictType
+    confidence: int = Field(ge=0, le=100)
+    summary: str
+    claim_evaluations: list[ClaimEvaluation]
+    red_flags: list[str]
+    recommendation: str

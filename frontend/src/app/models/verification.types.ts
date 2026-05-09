@@ -1,18 +1,22 @@
-// Mirror manual de /shared/verification.types.ts. Mantener idéntico.
+// Manual mirror of /shared/verification.types.ts. Keep in sync.
+
+export type Locale = 'en' | 'es' | 'pt' | 'fr';
+export const SUPPORTED_LOCALES: readonly Locale[] = [
+  'en',
+  'es',
+  'pt',
+  'fr',
+] as const;
 
 export type StepId = 'extract' | 'claims' | 'search' | 'language' | 'verdict';
-export type Severity = 'baja' | 'media' | 'alta';
+export type Severity = 'low' | 'medium' | 'high';
 export type Tone =
   | 'neutral'
-  | 'sensacionalista'
-  | 'propagandistico'
-  | 'opinativo';
-export type VerdictType =
-  | 'verdadera'
-  | 'falsa'
-  | 'parcialmente_verdadera'
-  | 'sin_evidencia_suficiente';
-export type ClaimStatus = 'confirmada' | 'refutada' | 'sin_evidencia';
+  | 'sensational'
+  | 'propagandistic'
+  | 'opinionated';
+export type VerdictType = 'true' | 'false' | 'partially_true' | 'unverified';
+export type ClaimStatus = 'confirmed' | 'refuted' | 'unverified';
 
 export interface Source {
   url: string;
@@ -28,30 +32,30 @@ export interface Claim {
 }
 
 export interface ManipulationSignal {
-  tipo: string;
-  ejemplo: string;
-  severidad: Severity;
+  type: string;
+  example: string;
+  severity: Severity;
 }
 
 export interface LanguageAnalysis {
-  puntuacion_manipulacion: number;
-  señales: ManipulationSignal[];
-  tono: Tone;
+  manipulation_score: number;
+  signals: ManipulationSignal[];
+  tone: Tone;
 }
 
 export interface ClaimEvaluation {
   claim: string;
-  estado: ClaimStatus;
-  razon: string;
+  status: ClaimStatus;
+  reason: string;
 }
 
 export interface Verdict {
-  veredicto: VerdictType;
-  confianza: number;
-  resumen: string;
-  claims_evaluados: ClaimEvaluation[];
-  banderas_rojas: string[];
-  recomendacion: string;
+  verdict: VerdictType;
+  confidence: number;
+  summary: string;
+  claim_evaluations: ClaimEvaluation[];
+  red_flags: string[];
+  recommendation: string;
 }
 
 export interface StatusPayload {

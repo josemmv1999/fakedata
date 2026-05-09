@@ -1,36 +1,49 @@
 import json
 import logging
 
-from agent import LANGUAGE_ANALYSIS_MAX_CHARS, LANGUAGE_ANALYSIS_TOKENS, MODEL, client
-from agent.models import LanguageAnalysis
+from agent import (
+    LANGUAGE_ANALYSIS_MAX_CHARS,
+    LANGUAGE_ANALYSIS_TOKENS,
+    LOCALE_NAMES,
+    MODEL,
+    client,
+    parse_json_response,
+)
+from agent.models import LanguageAnalysis, Locale
 
 logger = logging.getLogger(__name__)
 
 
-async def analizar_lenguaje(texto: str) -> LanguageAnalysis:
+async def analizar_lenguaje(texto: str, locale: Locale = "en") -> LanguageAnalysis:
+    locale_name = LOCALE_NAMES.get(locale, "English")
     resp = await client.messages.create(
         model=MODEL,
         max_tokens=LANGUAGE_ANALYSIS_TOKENS,
-        system="Analizas lenguaje periodístico para detectar manipulación. Devuelves SOLO JSON.",
+        system=(
+            "You analyze journalistic language to detect manipulation. Respond ONLY "
+            "with JSON, no markdown or text outside the object. Free-text values "
+            f"(`type`, `example`) must be written in {locale_name}; enum values must "
+            "stay in the canonical English form."
+        ),
         messages=[
             {
                 "role": "user",
-                "content": f"""Texto:
+                "content": f"""Text:
 \"\"\"{texto[:LANGUAGE_ANALYSIS_MAX_CHARS]}\"\"\"
 
-Analiza señales de manipulación: sensacionalismo, falacias, apelaciones emocionales, ausencia de fuentes, generalizaciones, ad hominem, clickbait.
+Analyze manipulation signals: sensationalism, fallacies, emotional appeals, missing sources, generalizations, ad hominem, clickbait.
 
-Formato:
+Format (use these exact JSON keys and enum values):
 {{
-  "puntuacion_manipulacion": 0-10,
-  "señales": [{{"tipo": "...", "ejemplo": "...", "severidad": "baja|media|alta"}}],
-  "tono": "neutral|sensacionalista|propagandistico|opinativo"
+  "manipulation_score": <number 0-10>,
+  "signals": [{{"type": "<short label>", "example": "<quoted excerpt>", "severity": "low|medium|high"}}],
+  "tone": "neutral|sensational|propagandistic|opinionated"
 }}""",
-            }
+            },
         ],
     )
     try:
-        data = json.loads(resp.content[0].text)
+        data = parse_json_response(resp.content[0].text)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Respuesta JSON inválida del modelo al analizar lenguaje: {e}") from e
+        raise ValueError(f"Invalid JSON from model during language analysis: {e}") from e
     return LanguageAnalysis(**data)

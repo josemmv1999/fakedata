@@ -22,7 +22,7 @@ async def health() -> dict:
 async def verify(req: VerifyRequest) -> StreamingResponse:
     async def event_stream() -> AsyncIterator[str]:
         try:
-            async for event_type, payload in run_pipeline(req.input):
+            async for event_type, payload in run_pipeline(req.input, req.locale):
                 yield format_event(event_type, payload)
         except Exception as e:
             logger.exception("Stream falló de forma inesperada")

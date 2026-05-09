@@ -1,21 +1,29 @@
 import json
 import logging
 
-from agent import MODEL, VERDICT_MAX_CHARS, VERDICT_TOKENS, client
-from agent.models import Claim, LanguageAnalysis, Source, Verdict
+from agent import (
+    LOCALE_NAMES,
+    MODEL,
+    SNIPPET_MAX_CHARS,
+    VERDICT_MAX_CHARS,
+    VERDICT_TOKENS,
+    client,
+    parse_json_response,
+)
+from agent.models import Claim, LanguageAnalysis, Locale, Source, Verdict
 
 logger = logging.getLogger(__name__)
 
-VEREDICTO_SCHEMA = """
+VERDICT_SCHEMA = """
 {
-  "veredicto": "verdadera|falsa|parcialmente_verdadera|sin_evidencia_suficiente",
-  "confianza": 0-100,
-  "resumen": "...",
-  "claims_evaluados": [
-    {"claim": "...", "estado": "confirmada|refutada|sin_evidencia", "razon": "..."}
+  "verdict": "true|false|partially_true|unverified",
+  "confidence": <integer 0-100>,
+  "summary": "...",
+  "claim_evaluations": [
+    {"claim": "...", "status": "confirmed|refuted|unverified", "reason": "..."}
   ],
-  "banderas_rojas": ["..."],
-  "recomendacion": "..."
+  "red_flags": ["..."],
+  "recommendation": "..."
 }
 """
 
@@ -25,43 +33,46 @@ async def generar_veredicto(
     claims: list[Claim],
     evidencias: dict[str, list[Source]],
     analisis: LanguageAnalysis,
+    locale: Locale = "en",
 ) -> Verdict:
+    locale_name = LOCALE_NAMES.get(locale, "English")
     evidencia_str = ""
     for claim_text, fuentes in evidencias.items():
         evidencia_str += f"\n## Claim: {claim_text}\n"
         for s in fuentes:
-            evidencia_str += f"- [{s.domain}] {s.title}: {s.snippet}\n"
+            evidencia_str += f"- [{s.domain}] {s.title}: {s.snippet[:SNIPPET_MAX_CHARS]}\n"
 
     resp = await client.messages.create(
         model=MODEL,
         max_tokens=VERDICT_TOKENS,
-        system=f"""Eres un verificador de hechos riguroso. Evalúas evidencia y emites veredictos calibrados.
-Reglas:
-- Si las fuentes son débiles o contradictorias, usa 'sin_evidencia_suficiente'.
-- Penaliza confianza si el dominio de las fuentes es de baja calidad o desconocido.
-- Considera el análisis de lenguaje como señal complementaria, no determinante.
-Devuelves SOLO JSON con este esquema:
-{VEREDICTO_SCHEMA}""",
+        system=f"""You are a rigorous fact-checker. You evaluate evidence and emit calibrated verdicts.
+Rules:
+- If sources are weak or contradictory, use 'unverified'.
+- Penalize confidence if source domains are low-quality or unknown.
+- Treat the language analysis as a complementary signal, not determinative.
+Respond ONLY with JSON matching this schema, no markdown or text outside the object.
+Free-text values (`summary`, `reason`, items in `red_flags`, `recommendation`) must be written in {locale_name}; enum values must stay in the canonical English form.
+{VERDICT_SCHEMA}""",
         messages=[
             {
                 "role": "user",
-                "content": f"""Texto original:
+                "content": f"""Original text:
 \"\"\"{texto[:VERDICT_MAX_CHARS]}\"\"\"
 
-Claims extraídos: {json.dumps([c.text for c in claims], ensure_ascii=False)}
+Extracted claims: {json.dumps([c.text for c in claims], ensure_ascii=False)}
 
-Evidencia recopilada:
+Collected evidence:
 {evidencia_str}
 
-Análisis de lenguaje:
+Language analysis:
 {analisis.model_dump_json(indent=2)}
 
-Emite el veredicto.""",
+Issue the verdict.""",
             }
         ],
     )
     try:
-        data = json.loads(resp.content[0].text)
+        data = parse_json_response(resp.content[0].text)
     except json.JSONDecodeError as e:
-        raise ValueError(f"Respuesta JSON inválida del modelo al generar veredicto: {e}") from e
+        raise ValueError(f"Invalid JSON from model when generating verdict: {e}") from e
     return Verdict(**data)

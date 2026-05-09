@@ -48,14 +48,15 @@ Dos paquetes:
 
   Cada paso vive en su propio módulo: [extractor.py](backend/agent/extractor.py), [claims.py](backend/agent/claims.py), [search.py](backend/agent/search.py), [language.py](backend/agent/language.py), [verdict.py](backend/agent/verdict.py). Si cualquier paso lanza, el pipeline emite un único evento `error` con el `step` en curso y termina limpio.
 
-- **`api/`** — capa FastAPI. [main.py](backend/api/main.py) configura CORS para `http://localhost:4200`, [routes.py](backend/api/routes.py) envuelve el async generator en un `StreamingResponse text/event-stream`, [sse.py](backend/api/sse.py) formatea los eventos, [schemas.py](backend/api/schemas.py) valida el body (URL `^https?://...` o texto ≥10 caracteres).
+- **`api/`** — capa FastAPI. [main.py](backend/api/main.py) configura CORS para `http://localhost:4200`, [routes.py](backend/api/routes.py) envuelve el async generator en un `StreamingResponse text/event-stream`, [sse.py](backend/api/sse.py) formatea los eventos, [schemas.py](backend/api/schemas.py) valida el body (`{ input, locale }` — URL `^https?://...` o texto ≥10 caracteres; `locale ∈ {en,es,pt,fr}`, default `en`).
 
 ### Convenciones
 
 - Cliente Anthropic: `AsyncAnthropic` instanciado una vez en [agent/__init__.py](backend/agent/__init__.py); todas las llamadas son `await`.
 - Operaciones bloqueantes (`trafilatura`, `DDGS`) se envuelven en `asyncio.to_thread`.
 - `MODEL` y `MAX_CLAIMS` son configurables vía env (defaults `claude-sonnet-4-6` y `5`). El resto de presupuestos (tokens, max_chars) son constantes en `agent/__init__.py`.
-- Todas las llamadas a Claude usan `system="...Devuelves SOLO JSON..."` y parsean con `json.loads` sin reparación. JSON malformado → excepción → evento `error`. No añadir recovery silencioso.
+- **i18n**: `pipeline.run(input, locale)` propaga `locale ∈ {en,es,pt,fr}` a `claims/language/verdict`. Las llamadas a Claude llevan `Respond in <locale_name>` para los campos free-text; los enums (`severity`, `tone`, `verdict`, `status`) se mantienen en inglés canónico. Los mensajes de eventos `status` se traducen con `status_message(key, locale)` desde `agent/__init__.py`.
+- Todas las llamadas a Claude usan un system prompt que pide JSON sin markdown. La respuesta se parsea con `parse_json_response()` (helper en `agent/__init__.py`), que tolera fences ```` ``` ```` y preámbulo recortando del primer `{` al último `}`. Si nada parsea, `JSONDecodeError` → evento `error`.
 - Logging con el módulo `logging`, nunca `print`.
 - Errores de búsqueda DDG se tragan y devuelven lista vacía (no abortan el pipeline).
 
@@ -76,8 +77,9 @@ npm test           # vitest
 - **Angular 21 standalone, zoneless.** `provideZonelessChangeDetection()` en [app.config.ts](frontend/src/app/app.config.ts). Sin NgModules.
 - **Estado:** NgRx Signal Store en [core/stores/verification.store.ts](frontend/src/app/core/stores/verification.store.ts). Estado local en componentes con `signal()` / `computed()`.
 - **SSE:** [core/services/sse.service.ts](frontend/src/app/core/services/sse.service.ts) usa `fetch + ReadableStream` (no `EventSource`, porque el endpoint es POST). Devuelve un async generator de eventos tipados.
-- **Smart vs presentational:** sólo [features/verify/verify-page.ts](frontend/src/app/features/verify/verify-page.ts) inyecta el store. Los 5 componentes en `features/verify/components/` son presentacionales puros (`input()` / `output()`, `ChangeDetectionStrategy.OnPush`).
-- **Primitivas UI** en `shared/ui/` (`badge`, `progress-bar`, `chip`, `skeleton`). Único barril `index.ts` permitido.
+- **i18n:** [core/i18n/translations.ts](frontend/src/app/core/i18n/translations.ts) tiene el diccionario completo (en/es/pt/fr). [core/i18n/i18n.service.ts](frontend/src/app/core/i18n/i18n.service.ts) expone `locale` como signal, `t(key)` reactivo, y `setLocale(l)` con persistencia en `localStorage`. La detección inicial usa `navigator.languages` con fallback `en`. El componente [shared/ui/locale-switcher](frontend/src/app/shared/ui/locale-switcher/locale-switcher.ts) cambia el locale activo. La store envía `{ input, locale }` al backend con el locale actual.
+- **Smart vs presentational:** sólo [features/verify/verify-page.ts](frontend/src/app/features/verify/verify-page.ts) inyecta la store. Los 5 componentes en `features/verify/components/` son presentacionales puros (`input()` / `output()`, `ChangeDetectionStrategy.OnPush`); inyectan el `I18nService` de solo lectura para traducir labels.
+- **Primitivas UI** en `shared/ui/` (`badge`, `progress-bar`, `chip`, `skeleton`). Único barril `index.ts` permitido. `locale-switcher` también vive ahí pero no se exporta desde el barril (acoplamiento con i18n).
 - **Tailwind v4** vía PostCSS ([postcss.config.json](frontend/postcss.config.json)). El estilo global `src/styles.css` configura el modo oscuro automático con `@custom-variant dark (@media (prefers-color-scheme: dark));`.
 - **Iconos:** `lucide-angular` registrado globalmente en `app.config.ts`.
 
@@ -90,6 +92,9 @@ npm test           # vitest
 - `RxJS` solo cuando un signal no baste (en este repo: cero usos).
 - TypeScript strict.
 
-### Gotcha conocido
+### Añadir un locale nuevo
 
-El lexer de templates de Angular rechaza identificadores con `ñ`. El campo `señales` de `LanguageAnalysis` se accede en TypeScript directamente, pero se expone al template a través de un `computed` ASCII (`signals`) en [language-analysis.ts](frontend/src/app/features/verify/components/language-analysis/language-analysis.ts). No renombrar el campo en el contrato — solo aliasar en componentes que lo consuman desde plantilla.
+1. Añadir el código a `Locale` en `shared/verification.types.ts` (y mirrors en `frontend/src/app/models/verification.types.ts` y `backend/agent/models.py`).
+2. Añadir un nombre humano a `LOCALE_NAMES` en `backend/agent/__init__.py` (lo que Claude verá en el prompt: "Respond in &lt;name&gt;").
+3. Añadir las cinco entradas a `STATUS_MESSAGES` (extract / claims / search_with_keywords / language / verdict).
+4. Añadir el bloque completo al diccionario `TRANSLATIONS` en `frontend/src/app/core/i18n/translations.ts`. El tipo `as const satisfies Record<Locale, ...>` fuerza al compilador a recordártelo.

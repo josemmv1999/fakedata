@@ -1,6 +1,12 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  input,
+} from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 
+import { I18nService } from '../../../../core/i18n/i18n.service';
 import type { StepId } from '../../../../models/verification.types';
 import type { StepState } from '../../../../core/stores/verification.store';
 
@@ -17,42 +23,62 @@ interface StepItem {
     <ol
       aria-live="polite"
       aria-atomic="false"
-      class="flex flex-col gap-2"
+      class="relative flex flex-col"
     >
-      @for (step of steps(); track step.id) {
-        <li
-          [attr.aria-current]="step.state === 'active' ? 'step' : null"
-          [class]="rowClass(step.state)"
-          class="flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-300"
-        >
-          <span [class]="iconBg(step.state)" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+      @for (step of steps(); track step.id; let last = $last) {
+        <li class="relative flex gap-4 pb-5 last:pb-0">
+          @if (!last) {
+            <span
+              aria-hidden="true"
+              [class]="lineCls(step.state)"
+              class="absolute left-4 top-9 -ml-px w-0.5 bottom-0 transition-colors duration-500"
+            ></span>
+          }
+          <span
+            [attr.aria-current]="step.state === 'active' ? 'step' : null"
+            [class]="circleCls(step.state)"
+            class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-4 ring-zinc-50 transition-colors dark:ring-zinc-950"
+          >
             @switch (step.state) {
               @case ('done') {
-                <i-lucide name="check" [size]="16" />
+                <i-lucide name="check" [size]="14" />
               }
               @case ('error') {
-                <i-lucide name="x" [size]="16" />
+                <i-lucide name="x" [size]="14" />
               }
               @case ('active') {
-                <span class="h-2.5 w-2.5 animate-ping rounded-full bg-current"></span>
+                <span
+                  class="h-2 w-2 rounded-full bg-current"
+                ></span>
               }
               @default {
-                <i-lucide [name]="iconName(step.id)" [size]="16" />
+                <i-lucide [name]="iconName(step.id)" [size]="14" />
               }
             }
           </span>
-          <span class="font-medium leading-tight">{{ label(step.id) }}</span>
-          @if (step.state === 'active' && currentMessage()) {
-            <span class="ml-auto hidden truncate text-sm text-zinc-600 sm:inline-block sm:max-w-[55%] dark:text-zinc-400">
-              {{ currentMessage() }}
-            </span>
-          }
+          <div class="flex-1 pt-1.5">
+            <p
+              [class]="labelCls(step.state)"
+              class="font-medium leading-tight transition-colors"
+            >
+              {{ label(step.id) }}
+            </p>
+            @if (step.state === 'active' && currentMessage()) {
+              <p
+                class="mt-1 truncate text-sm leading-snug text-zinc-500 dark:text-zinc-400"
+              >
+                {{ currentMessage() }}
+              </p>
+            }
+          </div>
         </li>
       }
     </ol>
   `,
 })
 export class ProgressSteps {
+  protected readonly i18n = inject(I18nService);
+
   readonly steps = input.required<StepItem[]>();
   readonly currentMessage = input<string>('');
 
@@ -67,33 +93,34 @@ export class ProgressSteps {
   }
 
   protected label(id: StepId): string {
-    return {
-      extract: 'Extraer contenido',
-      claims: 'Identificar afirmaciones',
-      search: 'Buscar evidencia',
-      language: 'Analizar lenguaje',
-      verdict: 'Emitir veredicto',
-    }[id];
+    return this.i18n.t(`step.${id}`);
   }
 
-  protected iconBg(state: StepState): string {
+  protected circleCls(state: StepState): string {
     return {
-      pending: 'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500',
-      active: 'bg-blue-600 text-white',
-      done: 'bg-emerald-600 text-white',
-      error: 'bg-rose-600 text-white',
+      pending:
+        'bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500',
+      active: 'bg-blue-600 text-white animate-pulse-glow',
+      done: 'bg-emerald-500 text-white',
+      error: 'bg-rose-500 text-white',
     }[state];
   }
 
-  protected rowClass(state: StepState): string {
+  protected lineCls(state: StepState): string {
     return {
-      pending:
-        'border-zinc-200 bg-white text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400',
-      active:
-        'border-blue-300 bg-blue-50 text-blue-950 shadow-sm dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100',
-      done: 'border-emerald-200 bg-white text-zinc-700 dark:border-emerald-900 dark:bg-zinc-900 dark:text-zinc-200',
-      error:
-        'border-rose-300 bg-rose-50 text-rose-950 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-100',
+      pending: 'bg-zinc-200 dark:bg-zinc-800',
+      active: 'bg-zinc-200 dark:bg-zinc-800',
+      done: 'bg-emerald-500/60',
+      error: 'bg-rose-500/60',
+    }[state];
+  }
+
+  protected labelCls(state: StepState): string {
+    return {
+      pending: 'text-zinc-500 dark:text-zinc-500',
+      active: 'text-blue-700 dark:text-blue-300',
+      done: 'text-zinc-900 dark:text-zinc-100',
+      error: 'text-rose-700 dark:text-rose-300',
     }[state];
   }
 }

@@ -5,10 +5,12 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="animate-pulse rounded-md bg-zinc-200 dark:bg-zinc-800"
+      class="relative overflow-hidden rounded-2xl bg-zinc-200/60 dark:bg-zinc-800/60"
       [style.height]="height()"
       [style.width]="width()"
-    ></div>
+    >
+      <div class="absolute inset-0 animate-shimmer"></div>
+    </div>
   `,
 })
 export class Skeleton {

@@ -11,6 +11,7 @@ import { environment } from '../../../environments/environment';
 import type {
   Claim,
   LanguageAnalysis,
+  Locale,
   Source,
   StepId,
   Verdict,
@@ -118,11 +119,12 @@ export const VerificationStore = signalStore(
         patchState(store, INITIAL);
       },
 
-      async start(input: string) {
+      async start(input: string, locale: Locale = 'en') {
         patchState(store, { ...INITIAL, status: 'streaming' });
         try {
           for await (const ev of sse.stream(`${environment.apiUrl}/verify`, {
             input,
+            locale,
           })) {
             switch (ev.event) {
               case 'status':

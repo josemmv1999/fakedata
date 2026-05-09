@@ -33,7 +33,7 @@ uv run uvicorn api.main:app --reload
 El servidor escucha en `http://localhost:8000`. Endpoints:
 
 - `GET /api/health` → `{"status":"ok"}`
-- `POST /api/verify` → `text/event-stream`. Body: `{"input":"<url o texto ≥10 chars>"}`.
+- `POST /api/verify` → `text/event-stream`. Body: `{"input":"<url o texto ≥10 chars>", "locale":"en|es|pt|fr"}`. `locale` por defecto `en`.
 
 Variables de `.env`:
 
@@ -52,6 +52,12 @@ npm start
 ```
 
 La SPA se sirve en `http://localhost:4200`. La URL de la API se configura en `src/environments/environment.ts` (`apiUrl`). El backend debe estar corriendo en paralelo.
+
+### Idiomas
+
+La app es multilingüe (inglés, español, portugués, francés). El idioma se detecta del navegador la primera vez (`navigator.languages`, fallback `en`) y se guarda en `localStorage` tras el primer cambio manual. El selector está arriba a la derecha de la página principal.
+
+El locale activo se envía al backend en cada `POST /api/verify`, y Claude responde en ese idioma para todos los campos free-text (`summary`, `recommendation`, `red_flags`, ejemplos de manipulación, razones de cada claim). Los enums (`severity`, `tone`, `verdict`, `status`) se mantienen en inglés canónico y los traduce el frontend.
 
 ## Flujo de verificación
 
