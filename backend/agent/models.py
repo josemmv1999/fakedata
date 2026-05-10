@@ -45,6 +45,12 @@ class ClaimEvaluation(BaseModel):
     reason: str
 
 
+class FurtherReading(BaseModel):
+    name: str
+    url: str
+    rationale: str
+
+
 class Verdict(BaseModel):
     verdict: VerdictType
     confidence: int = Field(ge=0, le=100)
@@ -52,3 +58,4 @@ class Verdict(BaseModel):
     claim_evaluations: list[ClaimEvaluation]
     red_flags: list[str]
     recommendation: str
+    further_reading: list[FurtherReading] = Field(default_factory=list)

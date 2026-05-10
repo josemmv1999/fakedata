@@ -132,21 +132,41 @@ def _fake_verdict(verdict: VerdictType, locale: Locale, claim_texts: list[str]) 
             "summary": "Most figures align with primary sources, but at least one claim lacks a verifiable trail.",
             "red_flags": ["Round numbers presented without uncertainty range", "Tone leans promotional in places"],
             "recommendation": "Cross-check the jobs figure with the official press release before sharing.",
+            "further_reading": [
+                {"name": "Reuters", "url": "https://www.reuters.com", "rationale": "International newswire with reliable coverage of public-policy announcements."},
+                {"name": "Associated Press", "url": "https://apnews.com", "rationale": "Independent reporting on government budget figures and labor market data."},
+                {"name": "AFP Fact Check", "url": "https://factcheck.afp.com", "rationale": "Has fact-checked similar climate-policy claims in the past."},
+            ],
         },
         "es": {
             "summary": "La mayoría de las cifras coinciden con fuentes primarias, pero al menos una afirmación carece de rastro verificable.",
             "red_flags": ["Números redondos presentados sin margen de incertidumbre", "El tono se inclina en partes hacia lo promocional"],
             "recommendation": "Contrasta la cifra de empleo con la nota de prensa oficial antes de compartir.",
+            "further_reading": [
+                {"name": "El País", "url": "https://elpais.com", "rationale": "Cobertura económica y de política climática con verificación editorial."},
+                {"name": "RTVE Noticias", "url": "https://www.rtve.es/noticias", "rationale": "Servicio público con acceso a comunicados oficiales del Gobierno."},
+                {"name": "Newtral", "url": "https://www.newtral.es", "rationale": "Verifica habitualmente cifras de creación de empleo en sectores estratégicos."},
+            ],
         },
         "pt": {
             "summary": "A maioria dos números coincide com fontes primárias, mas pelo menos uma afirmação não tem rasto verificável.",
             "red_flags": ["Números redondos apresentados sem margem de incerteza", "O tom inclina-se por vezes para o promocional"],
             "recommendation": "Confirme o número de empregos com o comunicado oficial antes de partilhar.",
+            "further_reading": [
+                {"name": "Público", "url": "https://www.publico.pt", "rationale": "Cobertura aprofundada de política ambiental e dados orçamentais."},
+                {"name": "RTP Notícias", "url": "https://www.rtp.pt/noticias", "rationale": "Serviço público com acesso direto a comunicados governamentais."},
+                {"name": "Polígrafo", "url": "https://poligrafo.sapo.pt", "rationale": "Fact-checker independente que tem analisado promessas semelhantes."},
+            ],
         },
         "fr": {
             "summary": "La plupart des chiffres correspondent à des sources primaires, mais au moins une affirmation n'a pas de trace vérifiable.",
             "red_flags": ["Chiffres ronds présentés sans marge d'incertitude", "Le ton penche par endroits vers le promotionnel"],
             "recommendation": "Recoupez le chiffre d'emplois avec le communiqué officiel avant de partager.",
+            "further_reading": [
+                {"name": "Le Monde", "url": "https://www.lemonde.fr", "rationale": "Couverture détaillée des politiques climatiques et budgétaires."},
+                {"name": "AFP Factuel", "url": "https://factuel.afp.com", "rationale": "Vérifie régulièrement les annonces d'emplois liés à la transition écologique."},
+                {"name": "Les Décodeurs (Le Monde)", "url": "https://www.lemonde.fr/les-decodeurs", "rationale": "Spécialisés dans l'analyse de chiffres officiels."},
+            ],
         },
     }
     base = by_locale.get(locale, by_locale["en"])
@@ -198,6 +218,7 @@ def _fake_verdict(verdict: VerdictType, locale: Locale, claim_texts: list[str]) 
         ],
         "red_flags": base["red_flags"],
         "recommendation": base["recommendation"],
+        "further_reading": base["further_reading"],
     }
 
 

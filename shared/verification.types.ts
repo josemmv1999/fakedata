@@ -52,6 +52,15 @@ export interface ClaimEvaluation {
   reason: string;
 }
 
+export interface FurtherReading {
+  /** Outlet name (matches one from the curated TRUSTED_SOURCES list per locale). */
+  name: string;
+  /** Homepage URL of the outlet — attached server-side, never model-generated. */
+  url: string;
+  /** One-sentence rationale for why this outlet is relevant to the article. */
+  rationale: string;
+}
+
 export interface Verdict {
   verdict: VerdictType;
   confidence: number;
@@ -59,6 +68,8 @@ export interface Verdict {
   claim_evaluations: ClaimEvaluation[];
   red_flags: string[];
   recommendation: string;
+  /** Additional reputable outlets the user can consult to dig deeper. */
+  further_reading: FurtherReading[];
 }
 
 // ── SSE events ─────────────────────────────────────────────────────────────

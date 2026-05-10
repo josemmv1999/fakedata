@@ -18,7 +18,7 @@ import { I18nService } from '../../../../core/i18n/i18n.service';
   template: `
     <form
       (submit)="$event.preventDefault(); onSubmit()"
-      class="flex flex-col gap-3 rounded-2xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm shadow-black/[0.02] backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:shadow-black/30"
+      class="flex flex-col gap-3 rounded-2xl border border-zinc-200/80 bg-white/90 p-5 shadow-sm shadow-black/[0.02] backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:shadow-black/30"
     >
       <label
         for="verify-input"

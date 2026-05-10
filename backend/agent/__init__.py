@@ -10,18 +10,18 @@ load_dotenv()
 
 MODEL = os.getenv("MODEL", "claude-sonnet-4-6")
 FAST_MODEL = os.getenv("FAST_MODEL", "claude-haiku-4-5-20251001")
-MAX_CLAIMS = int(os.getenv("MAX_CLAIMS", "3"))
+MAX_CLAIMS = int(os.getenv("MAX_CLAIMS", "5"))
 
 CONTENT_MAX_CHARS = 4000
 LANGUAGE_ANALYSIS_MAX_CHARS = 2000
 VERDICT_MAX_CHARS = 2000
 PREVIEW_MAX_CHARS = 500
-WEB_SEARCH_MAX_RESULTS = 3
-SNIPPET_MAX_CHARS = 200
+WEB_SEARCH_MAX_RESULTS = 5
+SNIPPET_MAX_CHARS = 400
 
 CLAIM_EXTRACTION_TOKENS = 512
-LANGUAGE_ANALYSIS_TOKENS = 512
-VERDICT_TOKENS = 1024
+LANGUAGE_ANALYSIS_TOKENS = 1024
+VERDICT_TOKENS = 2048
 
 client = AsyncAnthropic()
 
@@ -31,6 +31,53 @@ LOCALE_NAMES: dict[str, str] = {
     "es": "Spanish",
     "pt": "Portuguese",
     "fr": "French",
+}
+
+
+# Curated list of reputable outlets the verdict can recommend for further
+# verification. The MODEL picks names from this list (so it can't hallucinate
+# domains); we attach the URL server-side. Each list mixes generalist news
+# agencies (Reuters/AP/AFP) with the locale's strongest outlets and dedicated
+# fact-checkers when available.
+TRUSTED_SOURCES: dict[str, list[dict[str, str]]] = {
+    "en": [
+        {"name": "Reuters", "url": "https://www.reuters.com"},
+        {"name": "Associated Press", "url": "https://apnews.com"},
+        {"name": "BBC News", "url": "https://www.bbc.com/news"},
+        {"name": "The Guardian", "url": "https://www.theguardian.com"},
+        {"name": "AFP Fact Check", "url": "https://factcheck.afp.com"},
+        {"name": "PolitiFact", "url": "https://www.politifact.com"},
+        {"name": "Snopes", "url": "https://www.snopes.com"},
+        {"name": "FactCheck.org", "url": "https://www.factcheck.org"},
+    ],
+    "es": [
+        {"name": "El País", "url": "https://elpais.com"},
+        {"name": "RTVE Noticias", "url": "https://www.rtve.es/noticias"},
+        {"name": "Agencia EFE", "url": "https://efe.com"},
+        {"name": "Newtral", "url": "https://www.newtral.es"},
+        {"name": "Maldita.es", "url": "https://maldita.es"},
+        {"name": "Verificat", "url": "https://www.verificat.cat"},
+        {"name": "Reuters", "url": "https://www.reuters.com"},
+        {"name": "BBC Mundo", "url": "https://www.bbc.com/mundo"},
+    ],
+    "pt": [
+        {"name": "Público", "url": "https://www.publico.pt"},
+        {"name": "RTP Notícias", "url": "https://www.rtp.pt/noticias"},
+        {"name": "Agência Lusa", "url": "https://www.lusa.pt"},
+        {"name": "Polígrafo", "url": "https://poligrafo.sapo.pt"},
+        {"name": "Observador", "url": "https://observador.pt"},
+        {"name": "BBC News Brasil", "url": "https://www.bbc.com/portuguese"},
+        {"name": "Reuters", "url": "https://www.reuters.com"},
+    ],
+    "fr": [
+        {"name": "Le Monde", "url": "https://www.lemonde.fr"},
+        {"name": "AFP Factuel", "url": "https://factuel.afp.com"},
+        {"name": "France 24", "url": "https://www.france24.com"},
+        {"name": "Les Décodeurs (Le Monde)", "url": "https://www.lemonde.fr/les-decodeurs"},
+        {"name": "Libération CheckNews", "url": "https://www.liberation.fr/checknews"},
+        {"name": "Reuters", "url": "https://www.reuters.com"},
+        {"name": "BBC Afrique", "url": "https://www.bbc.com/afrique"},
+    ],
 }
 
 # Localized pipeline status messages. Keys aligned with StepId; the special
@@ -111,6 +158,7 @@ __all__ = [
     "MAX_CLAIMS",
     "LOCALE_NAMES",
     "STATUS_MESSAGES",
+    "TRUSTED_SOURCES",
     "parse_json_response",
     "status_message",
 ]

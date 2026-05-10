@@ -10,34 +10,53 @@
   --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
 }
 
-html,
-body {
-  height: 100%;
+html {
+  min-height: 100%;
+  background: #fafafa;
+}
+
+html.dark {
+  background: #09090b;
+  color-scheme: dark;
+}
+
+/*
+ * The decorative gradient lives on a fixed pseudo-element so it always covers
+ * the viewport — independent of content height or scroll position. Putting it
+ * on `body` with `background-attachment: fixed` would clip at the body's box,
+ * which is shorter than the document on long results pages.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(at 15% 0%, rgba(59, 130, 246, 0.10) 0, transparent 45%),
+    radial-gradient(at 85% 5%, rgba(168, 85, 247, 0.08) 0, transparent 45%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.05) 0, transparent 50%);
+}
+
+html.dark body::before {
+  background-image:
+    radial-gradient(at 15% 0%, rgba(59, 130, 246, 0.22) 0, transparent 50%),
+    radial-gradient(at 85% 5%, rgba(168, 85, 247, 0.18) 0, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.10) 0, transparent 55%);
 }
 
 body {
   font-family: var(--font-sans);
-  background: #fafaf9;
   color: #1c1917;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: 16px;
   font-feature-settings: "cv11", "ss01", "kern";
-  background-image:
-    radial-gradient(at 18% 8%, rgba(59, 130, 246, 0.06) 0, transparent 45%),
-    radial-gradient(at 82% 12%, rgba(244, 114, 182, 0.05) 0, transparent 45%),
-    radial-gradient(at 50% 96%, rgba(16, 185, 129, 0.04) 0, transparent 45%);
-  background-attachment: fixed;
   min-height: 100dvh;
 }
 
 html.dark body {
-  background: #0a0a0a;
   color: #f5f5f4;
-  background-image:
-    radial-gradient(at 18% 8%, rgba(59, 130, 246, 0.12) 0, transparent 50%),
-    radial-gradient(at 82% 12%, rgba(244, 114, 182, 0.08) 0, transparent 50%),
-    radial-gradient(at 50% 96%, rgba(16, 185, 129, 0.06) 0, transparent 50%);
 }
 
 *:focus-visible {
@@ -107,9 +126,6 @@ html.dark .animate-shimmer {
 
 html {
   color-scheme: light;
-}
-html.dark {
-  color-scheme: dark;
 }
 
 .animate-pulse-glow {

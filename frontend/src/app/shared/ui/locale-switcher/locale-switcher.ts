@@ -12,7 +12,7 @@ import type { Locale } from '../../../models/verification.types';
       <select
         (change)="onChange($event)"
         [attr.aria-label]="i18n.t('locale.label')"
-        class="appearance-none rounded-full border border-zinc-200/80 bg-white/70 py-2 pl-9 pr-8 text-sm font-medium text-zinc-700 backdrop-blur transition hover:border-zinc-300 hover:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 dark:border-zinc-700/80 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:bg-zinc-900"
+        class="appearance-none rounded-full border border-zinc-200/80 bg-white/90 py-2 pl-9 pr-8 text-sm font-medium text-zinc-700 backdrop-blur transition hover:border-zinc-300 hover:bg-white focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-500/20 dark:border-zinc-700/80 dark:bg-zinc-900/60 dark:text-zinc-200 dark:hover:bg-zinc-900"
       >
         @for (l of i18n.supportedLocales; track l) {
           <option [value]="l" [selected]="l === i18n.locale()">

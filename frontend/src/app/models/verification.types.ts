@@ -49,6 +49,12 @@ export interface ClaimEvaluation {
   reason: string;
 }
 
+export interface FurtherReading {
+  name: string;
+  url: string;
+  rationale: string;
+}
+
 export interface Verdict {
   verdict: VerdictType;
   confidence: number;
@@ -56,6 +62,7 @@ export interface Verdict {
   claim_evaluations: ClaimEvaluation[];
   red_flags: string[];
   recommendation: string;
+  further_reading: FurtherReading[];
 }
 
 export interface StatusPayload {

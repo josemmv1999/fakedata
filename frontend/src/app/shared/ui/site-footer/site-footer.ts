@@ -18,7 +18,7 @@ const CONTACT_EMAIL = 'hello@example.com';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer
-      class="mt-16 border-t border-zinc-200/70 bg-white/40 backdrop-blur-sm sm:mt-24 dark:border-zinc-800/70 dark:bg-zinc-950/40"
+      class="mt-16 border-t border-zinc-200/70 bg-white/80 backdrop-blur-md sm:mt-24 dark:border-zinc-800/70 dark:bg-zinc-950/60"
     >
       <div
         class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8"

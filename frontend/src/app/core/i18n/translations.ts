@@ -27,6 +27,8 @@ export const TRANSLATIONS = {
     'verdict.confidence': 'Confidence',
     'verdict.recommendation': 'Recommendation',
     'verdict.redFlags': 'Red flags',
+    'verdict.furtherReading': 'Verify with these outlets',
+    'verdict.furtherReading.hint': 'Independent sources',
 
     'claims.title': 'Claims',
     'claims.noSources': 'No sources found.',
@@ -121,6 +123,8 @@ export const TRANSLATIONS = {
     'verdict.confidence': 'Confianza',
     'verdict.recommendation': 'Recomendación',
     'verdict.redFlags': 'Banderas rojas',
+    'verdict.furtherReading': 'Contrasta con estos medios',
+    'verdict.furtherReading.hint': 'Fuentes independientes',
 
     'claims.title': 'Afirmaciones',
     'claims.noSources': 'No se encontraron fuentes.',
@@ -216,6 +220,8 @@ export const TRANSLATIONS = {
     'verdict.confidence': 'Confiança',
     'verdict.recommendation': 'Recomendação',
     'verdict.redFlags': 'Sinais de alerta',
+    'verdict.furtherReading': 'Confirme com estes meios',
+    'verdict.furtherReading.hint': 'Fontes independentes',
 
     'claims.title': 'Afirmações',
     'claims.noSources': 'Nenhuma fonte encontrada.',
@@ -311,6 +317,8 @@ export const TRANSLATIONS = {
     'verdict.confidence': 'Confiance',
     'verdict.recommendation': 'Recommandation',
     'verdict.redFlags': 'Signaux d’alerte',
+    'verdict.furtherReading': 'Vérifiez avec ces médias',
+    'verdict.furtherReading.hint': 'Sources indépendantes',
 
     'claims.title': 'Affirmations',
     'claims.noSources': 'Aucune source trouvée.',

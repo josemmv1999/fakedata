@@ -24,7 +24,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section
-      class="rounded-2xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm shadow-black/[0.02] backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:shadow-black/30"
+      class="rounded-2xl border border-zinc-200/80 bg-white/90 p-6 shadow-sm shadow-black/[0.02] backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-900/60 dark:shadow-black/30"
     >
       <header
         class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
