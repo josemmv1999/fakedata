@@ -1,15 +1,17 @@
 """Verification agent: async pipeline + module-level config and Anthropic client."""
 
 import json
+import logging
 import os
 
 from anthropic import AsyncAnthropic
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
 
 load_dotenv()
 
-MODEL = os.getenv("MODEL", "claude-sonnet-4-6")
-FAST_MODEL = os.getenv("FAST_MODEL", "claude-haiku-4-5-20251001")
+logger = logging.getLogger(__name__)
+
 MAX_CLAIMS = int(os.getenv("MAX_CLAIMS", "5"))
 
 CONTENT_MAX_CHARS = 4000
@@ -23,7 +25,57 @@ CLAIM_EXTRACTION_TOKENS = 512
 LANGUAGE_ANALYSIS_TOKENS = 1024
 VERDICT_TOKENS = 2048
 
-client = AsyncAnthropic()
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic").lower()
+
+if LLM_PROVIDER == "ollama":
+    client = AsyncOpenAI(
+        api_key="ollama",
+        base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
+    )
+    MODEL = os.getenv("OLLAMA_MODEL", "hf.co/bartowski/Qwen_Qwen3-14B-GGUF:Q4_K_M")
+    FAST_MODEL = os.getenv("OLLAMA_FAST_MODEL", "hf.co/bartowski/Qwen_Qwen3.5-9B-GGUF:Q4_K_M")
+    logger.info("LLM provider: Ollama | model=%s | fast=%s", MODEL, FAST_MODEL)
+
+elif LLM_PROVIDER == "anthropic":
+    client = AsyncAnthropic(
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
+    )
+    MODEL = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
+    FAST_MODEL = os.getenv("ANTHROPIC_FAST_MODEL", "claude-haiku-4-5-20251001")
+    logger.info("LLM provider: Anthropic | model=%s | fast=%s", MODEL, FAST_MODEL)
+
+else:
+    raise ValueError(f"Unknown LLM_PROVIDER={LLM_PROVIDER!r}. Must be 'anthropic' or 'ollama'.")
+
+
+async def chat(
+    model: str,
+    system: str,
+    user: str,
+    max_tokens: int,
+    temperature: float = 0.1,
+) -> str:
+    """Unified chat call — works transparently with both Anthropic and Ollama."""
+    if LLM_PROVIDER == "ollama":
+        resp = await client.chat.completions.create(
+            model=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        )
+        return resp.choices[0].message.content
+
+    else:  # anthropic
+        resp = await client.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        )
+        return resp.content[0].text
 
 
 LOCALE_NAMES: dict[str, str] = {
@@ -33,12 +85,6 @@ LOCALE_NAMES: dict[str, str] = {
     "fr": "French",
 }
 
-
-# Curated list of reputable outlets the verdict can recommend for further
-# verification. The MODEL picks names from this list (so it can't hallucinate
-# domains); we attach the URL server-side. Each list mixes generalist news
-# agencies (Reuters/AP/AFP) with the locale's strongest outlets and dedicated
-# fact-checkers when available.
 TRUSTED_SOURCES: dict[str, list[dict[str, str]]] = {
     "en": [
         {"name": "Reuters", "url": "https://www.reuters.com"},
@@ -80,8 +126,6 @@ TRUSTED_SOURCES: dict[str, list[dict[str, str]]] = {
     ],
 }
 
-# Localized pipeline status messages. Keys aligned with StepId; the special
-# "search_with_keywords" template formats `{keywords}` into the message.
 STATUS_MESSAGES: dict[str, dict[str, str]] = {
     "extract": {
         "en": "Extracting content…",
@@ -124,17 +168,12 @@ def status_message(key: str, locale: str, **fmt: str) -> str:
 
 
 def parse_json_response(text: str) -> dict:
-    """Parse JSON from a Claude response, tolerando fences markdown y pre/post-ámbulo.
-
-    Estrategia: 1) intenta parsear el texto trimmed; 2) si lleva ```...``` lo
-    elimina; 3) si aún falla, recorta del primer `{` al último `}` y reintenta.
-    Si nada parsea, propaga ``json.JSONDecodeError``.
-    """
+    """Parse JSON from a model response, tolerating markdown fences and preamble."""
     s = text.strip()
     if s.startswith("```"):
         first_nl = s.find("\n")
         if first_nl != -1:
-            s = s[first_nl + 1 :]
+            s = s[first_nl + 1:]
         if s.rstrip().endswith("```"):
             s = s.rstrip()[:-3].rstrip()
         s = s.strip()
@@ -145,14 +184,16 @@ def parse_json_response(text: str) -> dict:
         last = s.rfind("}")
         if first == -1 or last == -1 or last < first:
             raise
-        return json.loads(s[first : last + 1])
+        return json.loads(s[first: last + 1])
 
 
-from agent.pipeline import run  # noqa: E402  (imported after constants to avoid circular import)
+from agent.pipeline import run  # noqa: E402
 
 __all__ = [
     "run",
+    "chat",
     "client",
+    "LLM_PROVIDER",
     "MODEL",
     "FAST_MODEL",
     "MAX_CLAIMS",
