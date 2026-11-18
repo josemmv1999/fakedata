@@ -1,6 +1,8 @@
 import json
 import logging
 
+from pydantic import ValidationError
+
 from agent import chat
 
 from agent import (
@@ -8,7 +10,6 @@ from agent import (
     LANGUAGE_ANALYSIS_MAX_CHARS,
     LANGUAGE_ANALYSIS_TOKENS,
     LOCALE_NAMES,
-    client,
     parse_json_response,
 )
 from agent.models import LanguageAnalysis, Locale
@@ -31,7 +32,6 @@ async def analizar_lenguaje(texto: str, locale: Locale = "en") -> LanguageAnalys
         "Do not include trailing commas. Do not add comments. "
         f"Free-text values (`type`, `example`) must be written in {locale_name}. "
         "Enum values (`severity`, `tone`) must stay in canonical English. "
-        "/no_think"
     )
 
     user_prompt = (
@@ -64,7 +64,7 @@ async def analizar_lenguaje(texto: str, locale: Locale = "en") -> LanguageAnalys
             logger.debug("language raw response (attempt %d): %s", attempt + 1, raw)
             data = parse_json_response(raw)
             return LanguageAnalysis(**_sanitize(data, stop_reason=None))
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
+        except (json.JSONDecodeError, KeyError, TypeError, ValidationError) as e:
             last_error = e
             logger.warning("language analysis attempt %d failed: %s", attempt + 1, e)
 
@@ -93,7 +93,9 @@ def _sanitize(payload: dict, stop_reason: str | None) -> dict:
         )
         payload["tone"] = "neutral"
 
-    if not isinstance(payload.get("manipulation_score"), (int, float)):
-        payload["manipulation_score"] = 0.0
+    score = payload.get("manipulation_score")
+    payload["manipulation_score"] = (
+        max(0.0, min(10.0, float(score))) if isinstance(score, (int, float)) else 0.0
+    )
 
     return payload

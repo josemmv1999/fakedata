@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  isDevMode,
 } from '@angular/core';
 
 import { I18nService } from '../../core/i18n/i18n.service';
@@ -48,7 +49,9 @@ import { VerifyInput } from './components/verify-input/verify-input';
         >
           <app-brand-mark name="Veritas" size="md" />
           <div class="flex flex-wrap items-center justify-end gap-2">
-            <app-api-mode-switcher />
+            @if (devMode) {
+              <app-api-mode-switcher />
+            }
             <app-theme-switcher />
             <app-locale-switcher />
           </div>
@@ -149,6 +152,8 @@ import { VerifyInput } from './components/verify-input/verify-input';
 export class VerifyPage {
   protected readonly store = inject(VerificationStore);
   protected readonly i18n = inject(I18nService);
+  /** LIVE/MOCK toggle only makes sense against local backends. */
+  protected readonly devMode = isDevMode();
 
   protected readonly mergedClaims = computed<ClaimRow[]>(() => {
     const claims = this.store.claimsWithEvidence();

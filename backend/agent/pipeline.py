@@ -50,7 +50,7 @@ async def run(
                     ),
                 },
             )
-            sources = await buscar(claim.keywords)
+            sources = await buscar(claim.keywords, exclude_url=url_origen)
             evidencias[claim.text] = sources
             yield (
                 "evidence",

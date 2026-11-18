@@ -1,6 +1,8 @@
 import json
 import logging
 
+from pydantic import ValidationError
+
 from agent import chat
 
 from agent import (
@@ -8,7 +10,6 @@ from agent import (
     FAST_MODEL,
     LOCALE_NAMES,
     MAX_CLAIMS,
-    client,
     parse_json_response,
 )
 from agent.models import Claim, Locale
@@ -24,8 +25,8 @@ async def extraer_claims(texto: str, locale: Locale = "en") -> list[Claim]:
         "You MUST respond with ONLY a valid JSON object — no markdown, no backticks, "
         "no explanation, no text before or after the JSON. "
         "Do not include trailing commas. Do not add comments. "
-        f"Both `text` and `keywords` must be written in {locale_name}. "
-        "/no_think"
+        f"Write `text` in {locale_name}. Write `keywords` in the ORIGINAL language of the "
+        "input text (they are used for a web search, so they must match the source language). "
     )
 
     user_prompt = (
@@ -49,7 +50,7 @@ async def extraer_claims(texto: str, locale: Locale = "en") -> list[Claim]:
             logger.debug("claims raw response (attempt %d): %s", attempt + 1, raw)
             data = parse_json_response(raw)
             return [Claim(**c) for c in data["claims"]]
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
+        except (json.JSONDecodeError, KeyError, TypeError, ValidationError) as e:
             last_error = e
             logger.warning("claims attempt %d failed: %s", attempt + 1, e)
 

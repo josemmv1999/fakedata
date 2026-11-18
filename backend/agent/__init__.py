@@ -33,7 +33,7 @@ if LLM_PROVIDER == "ollama":
         base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1"),
     )
     MODEL = os.getenv("OLLAMA_MODEL", "hf.co/bartowski/Qwen_Qwen3-14B-GGUF:Q4_K_M")
-    FAST_MODEL = os.getenv("OLLAMA_FAST_MODEL", "hf.co/bartowski/Qwen_Qwen3.5-9B-GGUF:Q4_K_M")
+    FAST_MODEL = os.getenv("OLLAMA_FAST_MODEL", "hf.co/bartowski/Qwen_Qwen3-14B-GGUF:Q4_K_M")
     logger.info("LLM provider: Ollama | model=%s | fast=%s", MODEL, FAST_MODEL)
 
 elif LLM_PROVIDER == "anthropic":
@@ -62,16 +62,18 @@ async def chat(
             max_tokens=max_tokens,
             temperature=temperature,
             messages=[
-                {"role": "system", "content": system},
+                # Qwen3 hint to skip <think> blocks; only meaningful for Ollama.
+                {"role": "system", "content": f"{system} /no_think"},
                 {"role": "user", "content": user},
             ],
         )
-        return resp.choices[0].message.content
+        return resp.choices[0].message.content or ""
 
     else:  # anthropic
         resp = await client.messages.create(
             model=model,
             max_tokens=max_tokens,
+            temperature=temperature,
             system=system,
             messages=[{"role": "user", "content": user}],
         )

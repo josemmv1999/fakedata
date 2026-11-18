@@ -27,7 +27,10 @@ export class ThemeService {
   constructor() {
     if (typeof window === 'undefined') return;
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    mq.addEventListener('change', (e) => this._systemDark.set(e.matches));
+    mq.addEventListener('change', (e) => {
+      this._systemDark.set(e.matches);
+      this.applyClass(this.effective());
+    });
     this.applyClass(this.effective());
   }
 

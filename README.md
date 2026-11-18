@@ -5,7 +5,7 @@ Pega una URL o un titular y la app extrae las afirmaciones, busca evidencia en l
 ## Stack
 
 - **Shared** — TypeScript canónico (`shared/verification.types.ts`).
-- **Backend** — Python 3.11+, FastAPI, async pipeline. SSE (`text/event-stream`). Anthropic SDK (Sonnet + Haiku, two-model split). Caché en SQLite (`aiosqlite`).
+- **Backend** — Python 3.11+, FastAPI, async pipeline. SSE (`text/event-stream`). LLM intercambiable: Anthropic (Sonnet + Haiku, two-model split) u Ollama local (API compatible con OpenAI). Caché en SQLite (`aiosqlite`).
 - **Frontend** — Angular 21 standalone + zoneless, Tailwind v4, NgRx Signal Store, lucide-angular.
 
 ## Estructura
@@ -38,7 +38,7 @@ Necesitas **tres terminales** si quieres trabajar con backend real, mock y front
 
 - **Python 3.11+** y [`uv`](https://docs.astral.sh/uv/) (`winget install --id=astral-sh.uv` en Windows o `irm https://astral.sh/uv/install.ps1 | iex`).
 - **Node.js 20+** y `npm`.
-- Una **API key de Anthropic** (sólo para el backend real).
+- Una **API key de Anthropic** o un **Ollama** local (sólo para el backend real; ver [Proveedor de LLM](#proveedor-de-llm)).
 
 ### 1. Backend real (puerto `:8000`)
 
@@ -49,7 +49,7 @@ uv sync                      # crea .venv y resuelve dependencias
 uv run uvicorn api.main:app --reload
 ```
 
-Sirve en `http://localhost:8000`. Llama a Anthropic y a DuckDuckGo Search; consume tokens. La caché SQLite (`backend/cache.db`) se crea al primer arranque.
+Sirve en `http://localhost:8000`. Llama al LLM configurado y a DuckDuckGo Search; con Anthropic consume tokens. La caché SQLite (`backend/cache.db`) se crea al primer arranque.
 
 ### 2. Backend mock (puerto `:8001`) — opcional, sin tokens
 
@@ -70,19 +70,23 @@ npm install
 npm start                    # = ng serve
 ```
 
-Sirve en `http://localhost:4200`. Por defecto apunta a `:8000` (real). El frontend tiene un **toggle LIVE / MOCK en el header** que cambia entre `:8000` y `:8001` en runtime — se persiste en `localStorage` (`verifier.apiMode`). No hace falta reiniciar nada para alternar, pero los dos backends tienen que estar arriba para que el switch funcione en los dos sentidos.
+Sirve en `http://localhost:4200`. Por defecto apunta a `:8000` (real). En modo desarrollo (`ng serve`) el frontend muestra un **toggle LIVE / MOCK en el header** (oculto en builds de producción) que cambia entre `:8000` y `:8001` en runtime — se persiste en `localStorage` (`verifier.apiMode`). No hace falta reiniciar nada para alternar, pero los dos backends tienen que estar arriba para que el switch funcione en los dos sentidos.
 
 ## Variables de entorno (`backend/.env`)
 
-| Variable             | Default                          | Descripción                                                              |
-| -------------------- | -------------------------------- | ------------------------------------------------------------------------ |
-| `ANTHROPIC_API_KEY`  | _(requerida)_                    | Clave de API de Anthropic.                                               |
-| `MODEL`              | `claude-sonnet-4-6`              | Modelo principal — sólo se usa en el paso de veredicto (el más crítico). |
-| `FAST_MODEL`         | `claude-haiku-4-5-20251001`      | Modelo barato — se usa en `claims` y `language`. ~10× más barato.        |
-| `MAX_CLAIMS`         | `5`                              | Tope de claims a evaluar por consulta.                                   |
-| `CACHE_ENABLED`      | `true`                           | Activa la caché de resultados completos.                                 |
-| `CACHE_DB_PATH`      | `cache.db`                       | Ruta del SQLite (relativa a `backend/`).                                 |
-| `CACHE_TTL_HOURS`    | `168` (7 días)                   | TTL por entrada. Pasado el TTL, miss y se vuelve a verificar.            |
+| Variable               | Default                                       | Descripción                                                              |
+| ---------------------- | --------------------------------------------- | ------------------------------------------------------------------------ |
+| `LLM_PROVIDER`         | `anthropic`                                   | `anthropic` u `ollama`.                                                  |
+| `ANTHROPIC_API_KEY`    | _(requerida con Anthropic)_                   | Clave de API de Anthropic.                                               |
+| `ANTHROPIC_MODEL`      | `claude-sonnet-4-6`                           | Modelo principal — sólo se usa en el paso de veredicto (el más crítico). |
+| `ANTHROPIC_FAST_MODEL` | `claude-haiku-4-5-20251001`                   | Modelo barato — se usa en `claims` y `language`. ~10× más barato.        |
+| `OLLAMA_BASE_URL`      | `http://localhost:11434/v1`                   | Endpoint OpenAI-compatible de Ollama.                                    |
+| `OLLAMA_MODEL`         | `hf.co/bartowski/Qwen_Qwen3-14B-GGUF:Q4_K_M`  | Modelo local para el veredicto.                                          |
+| `OLLAMA_FAST_MODEL`    | `hf.co/bartowski/Qwen_Qwen3-14B-GGUF:Q4_K_M`  | Modelo local para `claims` y `language`.                                 |
+| `MAX_CLAIMS`           | `5`                                           | Tope de claims a evaluar por consulta.                                   |
+| `CACHE_ENABLED`        | `true`                                        | Activa la caché de resultados completos.                                 |
+| `CACHE_DB_PATH`        | `cache.db`                                    | Ruta del SQLite (relativa a `backend/`).                                 |
+| `CACHE_TTL_HOURS`      | `168` (7 días)                                | TTL por entrada. Pasado el TTL, miss y se vuelve a verificar.            |
 
 El mock backend ignora todas estas variables.
 
@@ -191,8 +195,46 @@ npm test                     # vitest
 
 - **`Failed to fetch` en la UI** — comprueba que ambos backends que necesitas estén arriba. El toggle LIVE/MOCK no levanta nada por ti.
 - **Health check del real responde con `"mode":"mock"`** — has lanzado `mock_api:app` en `:8000`. Mata el proceso y arranca `api.main:app`.
-- **Cambias `MAX_CLAIMS` o `MODEL` y no surte efecto** — uvicorn `--reload` no recarga constantes que se evalúan en import. Reinicia el servidor entero (Ctrl+C + relanzar).
+- **Cambias `MAX_CLAIMS`, `LLM_PROVIDER` o un `*_MODEL` y no surte efecto** — uvicorn `--reload` no recarga constantes que se evalúan en import. Reinicia el servidor entero (Ctrl+C + relanzar).
 - **Cambios en `shared/verification.types.ts` no aparecen en frontend o backend** — son mirrors manuales, hay que copiar a los dos sitios.
+
+## Proveedor de LLM
+
+`LLM_PROVIDER` elige el backend de modelos al arrancar. `agent/__init__.py` expone un único `chat()` que abstrae las dos APIs:
+
+- **`anthropic`** — `AsyncAnthropic`. Haiku para `claims` y `language`, Sonnet para `verdict`.
+- **`ollama`** — `AsyncOpenAI` apuntando a `OLLAMA_BASE_URL`. Coste cero; útil para desarrollar con datos reales sin gastar tokens. A los modelos Qwen3 se les añade `/no_think` para que no emitan bloques de razonamiento.
+
+> La caché no distingue proveedor: si cambias de Ollama a Anthropic, borra `cache.db` o desactiva la caché mientras pruebas.
+
+## Decisiones de diseño
+
+- **Pipeline, no agente.** Los pasos son fijos (extraer → claims → buscar → lenguaje → veredicto). Un agente con herramientas y bucle de decisión sería más flexible, pero también más caro, más lento y más difícil de depurar. Para verificar noticias prima la previsibilidad y el coste acotado por consulta.
+- **Dos modelos.** El paso que decide (veredicto) usa el modelo bueno; los pasos de extracción, el barato. Reduce el coste ~60-70 % sin tocar la calidad del veredicto.
+- **SSE sobre `POST` con `fetch` + `ReadableStream`.** `EventSource` sólo admite `GET` y el input puede ser un texto largo. El usuario ve el progreso paso a paso en lugar de esperar 15-30 s a ciegas.
+- **El modelo no inventa enlaces.** `further_reading` se elige de una lista cerrada por idioma (`TRUSTED_SOURCES`) y la URL la pone el backend, nunca el modelo.
+- **Grounding.** El prompt del veredicto incluye la fecha actual y obliga a juzgar sólo con la evidencia recogida: sin evidencia → `unverified`, nunca `false` por desconocimiento del modelo. Las fuentes se marcan como `trusted` / `unknown` según `TRUSTED_SOURCES`.
+- **Sin autoconfirmación.** Los resultados de búsqueda del mismo dominio que la URL verificada se descartan.
+- **Keywords en el idioma del artículo.** El texto de cada claim se muestra en el idioma de la UI, pero las keywords de búsqueda van en el idioma original para encontrar mejor evidencia.
+- **Enums canónicos.** `verdict`, `status`, `tone` y `severity` siempre en inglés; la traducción es cosa del frontend. El free-text llega ya en el idioma pedido.
+- **Caché por resultado completo.** Una URL o texto ya verificado se reproduce al instante y gratis; la clave normaliza la entrada (tracking params, `www.`, espacios).
+
+## Limitaciones conocidas
+
+Proyecto de portfolio, no desplegado. Antes de abrirlo al público haría falta:
+
+- **SSRF**: el extractor descarga cualquier URL `http(s)`, incluidas direcciones internas. Falta bloquear IPs privadas / loopback / link-local (también tras redirects) y limitar el tamaño de la respuesta.
+- **Rate limiting** y control de coste por IP o API key.
+- **Prompt injection**: el texto del artículo va al prompt. Se indica al modelo que es contenido no fiable, pero no es una defensa completa.
+
+Y a nivel de calidad de la IA:
+
+- **Salida estructurada nativa** (tool use forzado en Anthropic, JSON schema en Ollama) en lugar de pedir JSON por prompt y parsearlo; los reintentos actuales reenvían el mismo prompt sin el error.
+- **Evals**: un conjunto de noticias con veredicto esperado para medir si un cambio de prompt o de modelo mejora o empeora.
+- **Evidencia superficial**: el veredicto ve snippets de 400 caracteres sin fecha. El siguiente nivel es leer el texto completo de las fuentes top.
+- **Cruce claim ↔ evaluación por texto**: si el modelo reformula la claim en `claim_evaluations`, se pierde su estado en la UI. Debería cruzarse por índice.
+- **`confidence`** es la estimación del modelo, no una probabilidad calibrada.
+- **Tests**: no hay tests todavía (ver [`TODO.md`](TODO.md)).
 
 ## Roadmap
 
