@@ -179,7 +179,7 @@ Toggle manual en el header (system / light / dark). Persiste en `localStorage` (
 - `backend/agent/models.py` (pydantic v2)
 - `frontend/src/app/models/verification.types.ts`
 
-No hay generación automática (todavía); está en TODO investigar `pydantic-to-typescript` o un script `make sync-types` que falle el build si divergen.
+No hay generación automática (todavía); queda pendiente investigar `pydantic-to-typescript` o un script `make sync-types` que falle el build si divergen.
 
 ## Testing (placeholder)
 
@@ -188,7 +188,7 @@ No hay generación automática (todavía); está en TODO investigar `pydantic-to
 cd frontend
 npm test                     # vitest
 
-# Backend — tests aún no escritos (en TODO.md)
+# Backend — tests aún no escritos
 ```
 
 ## Pitfalls comunes
@@ -234,8 +234,8 @@ Y a nivel de calidad de la IA:
 - **Evidencia superficial**: el veredicto ve snippets de 400 caracteres sin fecha. El siguiente nivel es leer el texto completo de las fuentes top.
 - **Cruce claim ↔ evaluación por texto**: si el modelo reformula la claim en `claim_evaluations`, se pierde su estado en la UI. Debería cruzarse por índice.
 - **`confidence`** es la estimación del modelo, no una probabilidad calibrada.
-- **Tests**: no hay tests todavía (ver [`TODO.md`](TODO.md)).
+- **Tests**: no hay tests todavía. Los primeros candidatos son las funciones puras: `parse_json_response`, `normalize_input`, los `_sanitize` y el parser SSE del frontend.
 
 ## Roadmap
 
-Ver [`TODO.md`](TODO.md) para el roadmap completo. Próximos hitos relevantes: lectura de HTML completo de las fuentes top (Nivel 2 de profundidad), prompt caching de Anthropic, métricas de tokens por consulta, página `/v/{hash}` compartible.
+Próximos hitos: salida estructurada nativa y evals, lectura del texto completo de las fuentes top, métricas de tokens por consulta y una página `/v/{hash}` compartible.
